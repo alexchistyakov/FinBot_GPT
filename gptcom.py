@@ -1,10 +1,5 @@
-import json
-
 # A communicator class to easily send API requests to OpenAI API and store the message log
 class GPTCommunicator:
-
-    client = None
-    model_name = "gpt-3.5-turbo"
 
     current_messages = []
 
@@ -39,14 +34,14 @@ class GPTCommunicator:
 
 class SummarizationPrompter:
 
-    communicator = None
-
-    def __init__(self, communicator):
+    # Initializes and sets behavior
+    def __init__(self, communicator,config):
         self.communicator = communicator
-        self.communicator.setBehavior("You are a financial expert")
+        self.config = config
+        self.communicator.setBehavior(config["behavior"])
 
-    # Sends a summarization task to ChatGPT
+    # Sends a summarization task to ChatGPT with the prompt outlined in the config
     def requestSummary(self,article, min_length=50, max_length=200):
-        self.communicator.askGPT("In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, keeping it as short as possible while still encapsulating the main points: {a}".format(minimum=min_length,maximum=max_length,a=article))
+        self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,a=article))
         return self.communicator.send().message.content
 

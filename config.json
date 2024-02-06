@@ -2,7 +2,8 @@
   "model-name": "gpt-4",
   "prompts": {
     "summarizer": {
-
+      "behavior": "You are a financial expert",
+      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, keeping it as short as possible while still encapsulating the main points: {a}"
     }
   }
 }
