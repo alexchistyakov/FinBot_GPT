@@ -1,0 +1,8 @@
+{
+  "model-name": "gpt-4",
+  "prompts": {
+    "summarizer": {
+
+    }
+  }
+}
