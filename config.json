@@ -4,12 +4,13 @@
     "summarizer": {
       "behavior": "You are a financial expert looking to make good trades on the stock market",
       "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, keeping it as short as possible while still encapsulating the main points: {a}",
-      "qa_prompt": "Based on the aforementioned summaries, answer the following question: {text}"
+      "qa_prompt": "Based on the aforementioned summaries, answer the following question: {text}",
+      "summarize_all_prompt": "Based on all the summaries you have generated, can you briefly describe what is going on with the stock"
     },
     "question_analyzer": {
       "behavior": "You are a language expert",
-      "time_frame_prompt": "What time frame is this text talking about? (output in UTC format): {text}",
-      "company_identification_prompt": "What companies are being mentioned in this text? (output the company's ticker symbols): {text}"
+      "time_frame_prompt": "Right now, the date in UTC is {date_today}. What time frame is this text talking about? (output in UTC format): {text}",
+      "company_identification_prompt": "What companies are being mentioned in this text? (output the companies' ticker symbols only): {text}"
     }
   }
 }

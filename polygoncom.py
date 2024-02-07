@@ -16,9 +16,9 @@ class PolygonAPICommunicator:
     def getNews(self, ticker, date_after, date_before, limit):
 
         # Submit a request to the polygon API
+        # TODO Add error handling for bad requests
         request_url = self.news_request_url.format(ticker=ticker,utc_after=date_after,utc_before=date_before,limit=limit, api_key=self.api_key)
         response = requests.get(request_url).json()
-
         articles = []
 
         # Loop through results
