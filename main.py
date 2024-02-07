@@ -7,6 +7,9 @@ from datetime import datetime, timezone, timedelta
 
 class FinBot:
 
+    # Dictionary for storing summaries by ticker so we can preform QA, request sentiment, etc. with them later
+    summaries = {}
+
     def __init__(self, polygon_key, openai_client, config):
 
         # Create a my custom client to communicate/parse requests from the PolygonAPI
@@ -22,8 +25,15 @@ class FinBot:
         news = self.polygon_com.getNews(ticker, date_after, date_before, limit)
         summaries = []
         for article in news:
-            summaries.append(self.summary_prompter.requestSummary(article, min_length = 10, max_length = 90))
+            summary = self.summary_prompter.requestSummary(article, focus=ticker, min_length = 10, max_length = 90)
+            # Flush to avoid token overflow
+            self.summary_prompter.communicator.flush()
 
+            # Check to make sure there was relevant information in this article about ticker since Polygon API sometimes returns irrelevant articles that briefly mention the ticker. If so, add it to the list of summaries
+            if summary != "NO INFO":
+                summaries.append(summary)
+
+        self.summaries[ticker] = summaries
         return summaries
 
 # Load config, keys and sample files
@@ -61,14 +71,15 @@ formatting_string = "%Y-%m-%dT%H:%M:%SZ"
 today_string = today.strftime(formatting_string)
 yesterday_string = yesterday.strftime(formatting_string)
 
-print(today_string)
-
 # Get the summaries
-summaries = finbot.getNewsSummariesForTicker("AAPL", yesterday_string, today_string, 4)
+summaries = finbot.getNewsSummariesForTicker("AAPL", yesterday_string, today_string, 10)
 
 # Print news summaries as a test
 for summary in summaries:
+    print("--------------------------------")
     print(summary)
+
+# --- END EXAMPLE ---
 
 # Stop timing and print the elapsed time
 end_time = timeit.default_timer() - start_time

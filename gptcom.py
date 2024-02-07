@@ -2,6 +2,7 @@ import json
 from openai import OpenAI
 
 # A communicator class to easily send API requests to OpenAI API and store the message log
+# Is a separate class in case we end up swapping out GPT-4 for a smaller language model like Llama or Mistral
 class GPTCommunicator:
 
     current_messages = []
@@ -21,6 +22,7 @@ class GPTCommunicator:
 
     # Sends a "system" role message, declaring the context for this exchange (ex. "You are a financial expert")
     def setBehavior(self,system_behavior):
+        self.system_behavior = system_behavior
         self.current_messages.append({"role": "system", "content":system_behavior})
 
     # Formats and sends a user question
@@ -34,6 +36,7 @@ class GPTCommunicator:
     # Clears message history
     def flush(self):
         self.current_messages = []
+        self.setBehavior(self.system_behavior)
 
 class SummarizationPrompter:
 
@@ -44,8 +47,9 @@ class SummarizationPrompter:
         self.communicator.setBehavior(config["behavior"])
 
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
-    def requestSummary(self, article, min_length=50, max_length=200):
-        self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,a=article))
+    # Summary will have a length between min_length and max_length and will focus on extracting information about {focus}. If there is no relevant information about {focus}, function should return NO INFO
+    def requestSummary(self, article, focus="everything", min_length=50, max_length=200):
+        self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
         return self.communicator.send().message.content
 
     def summarizeAll(self, min_length=50, max_length=200):

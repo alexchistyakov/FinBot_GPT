@@ -3,7 +3,7 @@
   "prompts": {
     "summarizer": {
       "behavior": "You are a financial expert looking to make good trades on the stock market",
-      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, keeping it as short as possible while still encapsulating the main points: {a}",
+      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about {focus} that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say NO INFO: {a}",
       "qa_prompt": "Based on the aforementioned summaries, answer the following question: {text}",
       "summarize_all_prompt": "Based on all the summaries you have generated, can you briefly describe what is going on with the stock"
     },
