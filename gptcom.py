@@ -41,7 +41,24 @@ class SummarizationPrompter:
         self.communicator.setBehavior(config["behavior"])
 
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
-    def requestSummary(self,article, min_length=50, max_length=200):
+    def requestSummary(self, article, min_length=50, max_length=200):
         self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,a=article))
         return self.communicator.send().message.content
 
+# Disects user questions into data ready for Polygon API
+class QuestionAnalysisPrompter:
+
+    def __init__(self, communicator,config):
+        self.communicator = communicator
+        self.config = config
+        self.communicator.setBehavior(config["behavior"])
+
+    def indentifyTimeFrame(self, article):
+        self.communicator.askGPT(self.config["time_frame_prompt"].format(text=article))
+        #TODO Return a date object for convenience
+        return self.communicator.send().message.content
+
+    def identifyCompany(self, message):
+        self.communicator.askGPT(self.config["company_identification_prompt"].format(text=message))
+        #TODO Create an array of tickers
+        return self.communicator.send().message.content
