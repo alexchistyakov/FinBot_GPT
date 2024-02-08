@@ -52,8 +52,9 @@ class SummarizationPrompter:
         self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
         return self.communicator.send().message.content
 
-    def summarizeAll(self, min_length=50, max_length=200):
-        self.communicator.askGPT(self.config["summarize_all_prompt"])
+    def summarizeAll(self, summaries, min_length=50, max_length=200):
+        joined_summaries = ";".join(summaries)
+        self.communicator.askGPT(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
         return self.communicator.send().message.content
 
 # Disects user questions into data ready for Polygon API

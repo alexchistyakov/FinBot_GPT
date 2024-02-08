@@ -5,7 +5,7 @@
       "behavior": "You are a financial expert looking to make good trades on the stock market",
       "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about {focus} that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say NO INFO: {a}",
       "qa_prompt": "Based on the aforementioned summaries, answer the following question: {text}",
-      "summarize_all_prompt": "Based on all the summaries you have generated, can you briefly describe what is going on with the stock"
+      "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock and describe the overall sentiment: {text}"
     },
     "question_analyzer": {
       "behavior": "You are a language expert",

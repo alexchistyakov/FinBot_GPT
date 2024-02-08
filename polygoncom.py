@@ -1,16 +1,25 @@
 import requests
 import json
 from newspaper import Article
+import dateutil.parser
 
 # Class for communicating with the Polygon API and formatting/parsing responses into an appropriate fromat
 class PolygonAPICommunicator:
     # Will probably implement later when I expand this class's functionality to getting candlesticks
     # end_point = "/v2/reference/news"
     news_request_url = "https://api.polygon.io/v2/reference/news?ticker={ticker}&published_utc.gte={utc_after}&published_utc.lte={utc_before}&limit={limit}&apiKey={api_key}"
+    gainers_request_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?include_otc={include_otc}&apiKey={api_key}"
+    losers_request_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/losers?include_otc={include_otc}&apiKey={api_key}"
 
     # Just saves the API key
     def __init__(self, api_key):
         self.api_key = api_key
+
+    # Get top 20 gainers
+    def getTopGainers(self, ticker, include_otc):
+        request_url = self.gainers_request_url.format(include_otc=include_otc,api_key=self.api_key)
+        response = requests.get(request_url).json()
+        tickers = []
 
     # Get news for a particular stock ticker between date_after and date_before (formatted in UTC). Limited to "limit" amount of articles
     def getNews(self, ticker, date_after, date_before, limit):
@@ -25,6 +34,7 @@ class PolygonAPICommunicator:
         for result in response["results"]:
             # Get article URL from response
             url = result["article_url"]
+            time_published = dateutil.parser.parse(result["published_utc"])
 
             # Download and parse the article from URL using the Newspaper3k API
             article = Article(url)
@@ -35,7 +45,7 @@ class PolygonAPICommunicator:
             except:
                 continue
 
-            articles.append(article.text)
+            articles.append({"time" : time_published, "text" : article.text})
 
         return articles
 
