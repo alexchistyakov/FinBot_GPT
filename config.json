@@ -11,8 +11,8 @@
       "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action"
     },
     "question_analyzer": {
-      "behavior": "You are a language expert",
-      "time_frame_prompt": "Right now, the date in UTC is {date_today}. What time frame is this text talking about? (output in UTC format): {text}",
+      "behavior": "You are a basic assistant. Say as little as possible to get your point across so a program can easily extract information from your responses",
+      "time_frame_prompt": "Right now, the date in UTC is {date_today}. What time frame is this text talking about? Respond with two dates in UTC format (format offset without \":\"), one for the begging of the time frame, one for the end, separated by a \",\": {text}",
       "company_identification_prompt": "What companies are being mentioned in this text? (output the companies' ticker symbols only): {text}"
     }
   }

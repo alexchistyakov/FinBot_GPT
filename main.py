@@ -15,8 +15,7 @@ class FinBot:
 
         # Create a my custom client to communicate/parse requests from the PolygonAPI
         self.polygon_com = PolygonAPICommunicator(polygon_key)
-        # COMING SOON
-        # self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(client, "gpt-4"), config["prompts"]["question_analyzer"]
+        self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(client, "gpt-4"), config["prompts"]["question_analyzer"])
 
         # Create a prompter to make requests and log conversation for news summaries and question analysis
         self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client, config["model-name"]), config["prompts"]["summarizer"])
@@ -25,6 +24,18 @@ class FinBot:
 
         date_string = date.strftime(self.date_formatting_string)
         return date_string
+
+    def smartDateParse(self, text):
+
+        before, after = self.question_prompter.identifyTimeFrame(date_text)
+        before = datetime.strptime(before, "%Y-%m-%d %H:%M:%S%z")
+        after = datetime.strptime(after, "%Y-%m-%d %H:%M:%S%z")
+
+        return before, after
+
+    def smartNewsSummariesForTicker(self, ticker, date_text, min_length=10, max_length=90, limit=20):
+        before, after = self.smartDateParse(date_text)
+        return self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
 
     def getTopGainers(self, include_otc=False):
         return self.polygon_com.getTopGainers(include_otc)
@@ -103,7 +114,7 @@ class FinBot:
 
             overallSummary = self.getOverallSummary(summaries)
             if self.catalystExists(overallSummary):
-                print(overallSummary)
+                print("Catalyst found: " + overallSummary)
             else:
                 print("No catalyst for price action was found")
 
@@ -139,7 +150,9 @@ finbot = FinBot(keys["POLYGON_API"], client, config)
 today = datetime.now(timezone.utc)
 yesterday = today - timedelta(days=1)
 
-finbot.getGainerSummaries()
+# finbot.getGainerSummaries()
+
+finbot.smartNewsSummariesForTicker("AAPL", "in the month before yesterday")
 
 # ---------- END EXAMPLE ---------
 

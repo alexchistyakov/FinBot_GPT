@@ -1,5 +1,6 @@
 import json
 from openai import OpenAI
+from datetime import datetime, timezone
 
 # A communicator class to easily send API requests to OpenAI API and store the message log
 # Is a separate class in case we end up swapping out GPT-4 for a smaller language model like Llama or Mistral
@@ -75,9 +76,12 @@ class QuestionAnalysisPrompter:
         self.communicator.setBehavior(config["behavior"])
 
     def identifyTimeFrame(self, message):
-        self.communicator.askGPT(self.config["time_frame_prompt"].format(text=message))
-        #TODO Return a date object for convenience
-        return self.communicator.send().message.content
+        today = datetime.now(timezone.utc)
+        self.communicator.askGPT(self.config["time_frame_prompt"].format(text=message, date_today=today))
+        message = self.communicator.send().message.content
+        print(message)
+        before, after = message.split(", ")
+        return before, after
 
     def identifyCompany(self, message):
         self.communicator.askGPT(self.config["company_identification_prompt"].format(text=message))
