@@ -61,6 +61,11 @@ class SummarizationPrompter:
         self.communicator.askGPT(self.config["catalyst_prompt"].format(text=text))
         return self.communicator.send().message.content
 
+    def getSentiment(self, summaries):
+        joined_summaries = ";".join(summaries)
+        self.communicator.askGPT(self.config["sentiment_prompt"].format(text=text))
+        return self.communicator.send().message.content
+
 # Disects user questions into data ready for Polygon API
 class QuestionAnalysisPrompter:
 

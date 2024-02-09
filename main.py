@@ -61,6 +61,14 @@ class FinBot:
 
         return self.summary_prompter.summarizeAll(text_only_summaries, min_length=min_length, max_length=max_length)
 
+    def getSentiment(self, summaries):
+
+        text_only_summaries = []
+        for summary in summaries:
+            text_only_summaries.append(summary["text"])
+
+        return self.summary_prompter.summarizeAll(text_only_summaries)
+
     # Identify whether a catalyst for a stock's movement exists
     def catalystExists(self, text):
         response = self.summary_prompter.lookForCatalyst(text)
@@ -70,17 +78,17 @@ class FinBot:
             return False
 
     # TODO: Format object. Temproarily just print statements because I don't know if we will be doing a stream or just a JSON object
-    def getGainerSummaries(self):
-        gainers = self.getTopGainers()
+    def getGainerSummaries(self, amount=20):
+        gainers = self.getTopGainers()[:amount-1]
 
         # Get the summaries
         for item in gainers:
             ticker = item["ticker"]
-            vi = ((item["data"]["volume"] - item["data"]["volume_yesterday"])/item["data"]["volume_yesterday"]) * 100
+            vi = round(((item["data"]["volume"] - item["data"]["volume_yesterday"])/item["data"]["volume_yesterday"]) * 100, 2)
             print("==================================")
 
             print("\n")
-            print("$ {ticker} [CHANGE PERCENT: {cp}] [PRICE: {p}] [VOLUME INCREASE: {vi}]".format(ticker=ticker, cp=item["data"]["change_percent"], p=item["data"]["price"], vi=vi))
+            print("$ {ticker} [CHANGE PERCENT: {cp}%] [PRICE: {p}] [VOLUME CHANGE: {vi}%]".format(ticker=ticker, cp=round(item["data"]["change_percent"],2), p=item["data"]["price"], vi=vi))
             summaries = self.getNewsSummariesForTicker(ticker, yesterday, today, min_length=10, max_length=90, limit=20)
 
             print("\n")
