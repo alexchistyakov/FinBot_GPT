@@ -22,7 +22,7 @@ class PolygonAPICommunicator:
         response = requests.get(request_url).json()
         tickers = []
         for item in response["tickers"]:
-            result = { item["ticker"] : { "volume" : item["day"]["v"], "change_percent" : item["todaysChangePerc"], "volume_yesterday" : item["prevDay"]["v"], "price" : item["min"]["c"] }}
+            result = { "ticker": item["ticker"], "data" : { "volume" : item["day"]["v"], "change_percent" : item["todaysChangePerc"], "volume_yesterday" : item["prevDay"]["v"], "price" : item["min"]["c"] }}
             tickers.append(result)
 
         return tickers
@@ -67,13 +67,13 @@ class PolygonAPICommunicator:
         return articles
 
 # --- TEST CODE ---
-keys_file = open("../keys.json")
-key = json.load(keys_file)["POLYGON_API"]
-keys_file.close()
+#keys_file = open("../keys.json")
+#key = json.load(keys_file)["POLYGON_API"]
+#keys_file.close()
 
-communicator = PolygonAPICommunicator(key)
-tickers = communicator.getTopGainers(include_otc=False)
-for ticker in tickers:
-    print("------------------------------------------------------------------")
-    print(ticker)
-print(len(tickers))
+#communicator = PolygonAPICommunicator(key)
+#tickers = communicator.getTopGainers(include_otc=False)
+#for ticker in tickers:
+#    print("------------------------------------------------------------------")
+#    print(ticker)
+#print(len(tickers))

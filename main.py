@@ -9,6 +9,7 @@ class FinBot:
 
     # Dictionary for storing summaries by ticker so we can preform QA, request sentiment, etc. with them later
     summaries = {}
+    date_formatting_string = "%Y-%m-%dT%H:%M:%SZ"
 
     def __init__(self, polygon_key, openai_client, config):
 
@@ -20,7 +21,21 @@ class FinBot:
         # Create a prompter to make requests and log conversation for news summaries and question analysis
         self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client, config["model-name"]), config["prompts"]["summarizer"])
 
-    def getNewsSummariesForTicker(self, ticker, date_after, date_before, min_length=10, max_length=90, limit=20):
+    def formatDate(self, date):
+
+        date_string = date.strftime(self.date_formatting_string)
+        return date_string
+
+    def getTopGainers(self, include_otc=False):
+        return self.polygon_com.getTopGainers(include_otc)
+
+    def getTopLosers(self, include_otc=False):
+        return self.polygon_com.getTopLosers(include_otc)
+
+    def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
+
+        date_after = self.formatDate(datetime_after)
+        date_before = self.formatDate(datetime_before)
 
         news = self.polygon_com.getNews(ticker, date_after, date_before, limit)
         summaries = []
@@ -36,6 +51,7 @@ class FinBot:
 
         return summaries
 
+    # Get a summary of summaries
     def getOverallSummary(self, summaries, min_length=10, max_length=30):
 
         # Get only text
@@ -44,6 +60,46 @@ class FinBot:
             text_only_summaries.append(summary["text"])
 
         return self.summary_prompter.summarizeAll(text_only_summaries, min_length=min_length, max_length=max_length)
+
+    # Identify whether a catalyst for a stock's movement exists
+    def catalystExists(self, text):
+        response = self.summary_prompter.lookForCatalyst(text)
+        if response == "YES":
+            return True
+        else:
+            return False
+
+    # TODO: Format object. Temproarily just print statements because I don't know if we will be doing a stream or just a JSON object
+    def getGainerSummaries(self):
+        gainers = self.getTopGainers()
+
+        # Get the summaries
+        for item in gainers:
+            ticker = item["ticker"]
+            vi = ((item["data"]["volume"] - item["data"]["volume_yesterday"])/item["data"]["volume_yesterday"]) * 100
+            print("==================================")
+
+            print("\n")
+            print("$ {ticker} [CHANGE PERCENT: {cp}] [PRICE: {p}] [VOLUME INCREASE: {vi}]".format(ticker=ticker, cp=item["data"]["change_percent"], p=item["data"]["price"], vi=vi))
+            summaries = self.getNewsSummariesForTicker(ticker, yesterday, today, min_length=10, max_length=90, limit=20)
+
+            print("\n")
+
+            if len(summaries) == 0:
+                print("NO NEWS")
+            else:
+                for summary in summaries:
+                    print("{time}: {text}".format(time=summary["time"].strftime("[%m/%d/%Y at %H:%M]"),text=summary["text"]))
+
+            print("\n")
+
+            overallSummary = self.getOverallSummary(summaries)
+            if self.catalystExists(overallSummary):
+                print(overallSummary)
+            else:
+                print("No catalyst for price action was found")
+
+            print("\n")
 
 # Load config, keys and sample files
 config_file = open("config.json")
@@ -69,29 +125,15 @@ client = OpenAI()
 # Create an instance of FinBot
 finbot = FinBot(keys["POLYGON_API"], client, config)
 
-# --- EXAMPLE: Get the news summaries for AAPL for today ---
+# --------- EXAMPLE: Get the news summaries and overall sentiment for top gainers ---------
 
 # Do some date retrival and formatting first
 today = datetime.now(timezone.utc)
 yesterday = today - timedelta(days=1)
 
-formatting_string = "%Y-%m-%dT%H:%M:%SZ"
+finbot.getGainerSummaries()
 
-today_string = today.strftime(formatting_string)
-yesterday_string = yesterday.strftime(formatting_string)
-
-# Get the summaries
-summaries = finbot.getNewsSummariesForTicker("AAPL", yesterday_string, today_string, limit=20)
-
-# Print news summaries as a test
-print("--------------FINAL SUMMARIES------------------")
-for summary in summaries:
-    print(summary)
-    print("---------------------------------")
-
-print(finbot.getOverallSummary(summaries))
-
-# --- END EXAMPLE ---
+# ---------- END EXAMPLE ---------
 
 # Stop timing and print the elapsed time
 end_time = timeit.default_timer() - start_time

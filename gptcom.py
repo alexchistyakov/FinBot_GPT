@@ -57,6 +57,10 @@ class SummarizationPrompter:
         self.communicator.askGPT(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
         return self.communicator.send().message.content
 
+    def lookForCatalyst(self, text):
+        self.communicator.askGPT(self.config["catalyst_prompt"].format(text=text))
+        return self.communicator.send().message.content
+
 # Disects user questions into data ready for Polygon API
 class QuestionAnalysisPrompter:
 
