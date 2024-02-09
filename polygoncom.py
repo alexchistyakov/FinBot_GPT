@@ -16,10 +16,27 @@ class PolygonAPICommunicator:
         self.api_key = api_key
 
     # Get top 20 gainers
-    def getTopGainers(self, ticker, include_otc):
+    # Returns an array of dictionaries {ticker : {"volume" : volume, "change_percent": percent cahnge since yesterday, "volume_yesterday" : volume yesterday, "price" : price}
+    def getTopGainers(self, include_otc):
         request_url = self.gainers_request_url.format(include_otc=include_otc,api_key=self.api_key)
         response = requests.get(request_url).json()
         tickers = []
+        for item in response["tickers"]:
+            result = { item["ticker"] : { "volume" : item["day"]["v"], "change_percent" : item["todaysChangePerc"], "volume_yesterday" : item["prevDay"]["v"], "price" : item["min"]["c"] }}
+            tickers.append(result)
+
+        return tickers
+
+    # Same structure as gainers but for losers
+    def getTopLosers(self, include_otc):
+        request_url = self.losers_request_url.format(include_otc=include_otc,api_key=self.api_key)
+        response = requests.get(request_url).json()
+        tickers = []
+        for item in response["tickers"]:
+            result = { item["ticker"] : { "volume" : item["day"]["v"], "change_percent" : item["todaysChangePerc"], "volume_yesterday" : item["prevDay"]["v"], "price" : item["min"]["c"] }}
+            tickers.append(result)
+
+        return tickers
 
     # Get news for a particular stock ticker between date_after and date_before (formatted in UTC). Limited to "limit" amount of articles
     def getNews(self, ticker, date_after, date_before, limit):
@@ -50,13 +67,13 @@ class PolygonAPICommunicator:
         return articles
 
 # --- TEST CODE ---
-# keys_file = open("../keys.json")
-# key = json.load(keys_file)["POLYGON_API"]
-# keys_file.close()
+keys_file = open("../keys.json")
+key = json.load(keys_file)["POLYGON_API"]
+keys_file.close()
 
-# communicator = PolygonAPICommunicator(key)
-# news = communicator.getNews("AAPL", "2023-02-01T00:00:00Z", "2023-05-01T00:00:00Z", 10)
-# for text in news:
-#     print("------------------------------------------------------------------")
-#     print(text)
-# print(len(news))
+communicator = PolygonAPICommunicator(key)
+tickers = communicator.getTopGainers(include_otc=False)
+for ticker in tickers:
+    print("------------------------------------------------------------------")
+    print(ticker)
+print(len(tickers))
