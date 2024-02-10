@@ -80,6 +80,10 @@ class QuestionAnalysisPrompter:
         self.communicator.askGPT(self.config["time_frame_prompt"].format(text=message, date_today=today))
         message = self.communicator.send().message.content
         print(message)
+
+        if message == "NONE":
+            return None,None
+
         before, after = message.split(", ")
         return before, after
 

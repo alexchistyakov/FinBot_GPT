@@ -11,11 +11,25 @@ class FinBot:
     summaries = {}
     date_formatting_string = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, polygon_key, openai_client, config):
+    def __init__(self):
+
+        openai_client = OpenAI()
+
+        # Load config, keys and sample files
+        config_file = open("config.json")
+        key_file = open("../keys.json")
+
+        # Convert config, keys and sample files into dictionaries
+        self.config = json.load(config_file)
+        polygon_key = json.load(key_file)["POLYGON_API"]
+
+        # Close files
+        config_file.close()
+        key_file.close()
 
         # Create a my custom client to communicate/parse requests from the PolygonAPI
         self.polygon_com = PolygonAPICommunicator(polygon_key)
-        self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(client, "gpt-4"), config["prompts"]["question_analyzer"])
+        self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(openai_client, "gpt-4"), config["prompts"]["question_analyzer"])
 
         # Create a prompter to make requests and log conversation for news summaries and question analysis
         self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client, config["model-name"]), config["prompts"]["summarizer"])
@@ -27,15 +41,21 @@ class FinBot:
 
     def smartDateParse(self, text):
 
-        before, after = self.question_prompter.identifyTimeFrame(date_text)
-        before = datetime.strptime(before, "%Y-%m-%d %H:%M:%S%z")
-        after = datetime.strptime(after, "%Y-%m-%d %H:%M:%S%z")
+        after, before = self.question_prompter.identifyTimeFrame(text)
+        if before != None and after != None:
+            before = datetime.strptime(before, "%Y-%m-%d %H:%M:%S%z")
+            after = datetime.strptime(after, "%Y-%m-%d %H:%M:%S%z")
 
         return before, after
 
-    def smartNewsSummariesForTicker(self, ticker, date_text, min_length=10, max_length=90, limit=20):
+    def smartNewsSummariesForTicker(self, ticker, date_text, min_length=10, max_length=30, limit=20):
         before, after = self.smartDateParse(date_text)
-        return self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
+        # TEMP CODE FOR DEMO
+        summaries = self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
+        for summary in summaries:
+            print("[{time}] : {text}".format(time=summary["time"], text=summary["text"]))
+
+        # return self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
 
     def getTopGainers(self, include_otc=False):
         return self.polygon_com.getTopGainers(include_otc)
@@ -142,7 +162,7 @@ start_time = timeit.default_timer()
 client = OpenAI()
 
 # Create an instance of FinBot
-finbot = FinBot(keys["POLYGON_API"], client, config)
+finbot = FinBot()
 
 # --------- EXAMPLE: Get the news summaries and overall sentiment for top gainers ---------
 
@@ -152,12 +172,14 @@ yesterday = today - timedelta(days=1)
 
 # finbot.getGainerSummaries()
 
-finbot.smartNewsSummariesForTicker("AAPL", "in the month before yesterday")
+# summaries = finbot.smartNewsSummariesForTicker("AAPL", "in the month before yesterday")
+
+# for summary in summaries:
+#     print("[{time}] : {text}".format(time=summary["time"], text=summary["text"]))
 
 # ---------- END EXAMPLE ---------
 
 # Stop timing and print the elapsed time
 end_time = timeit.default_timer() - start_time
 print("Time Elapsed: {time} seconds".format(time=end_time))
-
 
