@@ -2,7 +2,7 @@ import json
 import timeit
 from gptcom import GPTCommunicator,SummarizationPrompter, QuestionAnalysisPrompter
 from polygoncom import PolygonAPICommunicator
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 from datetime import datetime, timezone, timedelta
 
 class FinBot:
@@ -55,6 +55,10 @@ class FinBot:
         for summary in summaries:
             print("[{time}] : {text}".format(time=summary["time"], text=summary["text"]))
 
+        overall = self.getOverallSummary(summaries)
+        print("\n")
+        print(overall)
+
         # return self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
 
     def getTopGainers(self, include_otc=False):
@@ -70,27 +74,33 @@ class FinBot:
 
         news = self.polygon_com.getNews(ticker, date_after, date_before, limit)
         summaries = []
-        for pair in news:
-            article = pair["text"]
-            summary = self.summary_prompter.requestSummary(article, focus=ticker, min_length=min_length, max_length=max_length)
-            # Flush to avoid token overflow
-            self.summary_prompter.communicator.flush()
+        try:
+            for pair in news:
+                article = pair["text"]
+                summary = self.summary_prompter.requestSummary(article, focus=ticker, min_length=min_length, max_length=max_length)
+                # Flush to avoid token overflow
+                self.summary_prompter.communicator.flush()
 
-            # Check to make sure there was relevant information in this article about ticker since Polygon API sometimes returns irrelevant articles that briefly mention the ticker. If so, add it to the list of summaries
-            if summary != "NO INFO":
-                summaries.append({"time" : pair["time"], "text" : summary})
+                # Check to make sure there was relevant information in this article about ticker since Polygon API sometimes returns irrelevant articles that briefly mention the ticker. If so, add it to the list of summaries
+                if summary != "NO INFO":
+                    summaries.append({"time" : pair["time"], "text" : summary})
 
-        return summaries
+            return summaries
+        except RateLimitError as e:
+            return {"error": "NO MONEY"}
 
     # Get a summary of summaries
-    def getOverallSummary(self, summaries, min_length=10, max_length=30):
+    def getOverallSummary(self, summaries, min_length=10, max_length=50):
 
         # Get only text
-        text_only_summaries = []
-        for summary in summaries:
-            text_only_summaries.append(summary["text"])
+        try:
+            text_only_summaries = []
+            for summary in summaries:
+                text_only_summaries.append(summary["text"])
 
-        return self.summary_prompter.summarizeAll(text_only_summaries, min_length=min_length, max_length=max_length)
+            return self.summary_prompter.summarizeAll(text_only_summaries, min_length=min_length, max_length=max_length)
+        except RateLimitError as e:
+            return {"error": "NO MONEY"}
 
     def getSentiment(self, summaries):
 
@@ -134,7 +144,7 @@ class FinBot:
 
             overallSummary = self.getOverallSummary(summaries)
             if self.catalystExists(overallSummary):
-                print("Catalyst found: " + overallSummary)
+                print(overallSummary)
             else:
                 print("No catalyst for price action was found")
 

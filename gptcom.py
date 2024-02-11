@@ -2,6 +2,8 @@ import json
 from openai import OpenAI
 from datetime import datetime, timezone
 
+class OutOfTokensException(Exception):
+    pass
 # A communicator class to easily send API requests to OpenAI API and store the message log
 # Is a separate class in case we end up swapping out GPT-4 for a smaller language model like Llama or Mistral
 class GPTCommunicator:
