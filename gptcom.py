@@ -73,11 +73,13 @@ class SummarizationPrompter:
 class QuestionAnalysisPrompter:
 
     def __init__(self, communicator,config):
+
         self.communicator = communicator
         self.config = config
         self.communicator.setBehavior(config["behavior"])
 
     def identifyTimeFrame(self, message):
+
         today = datetime.now(timezone.utc)
         self.communicator.askGPT(self.config["time_frame_prompt"].format(text=message, date_today=today))
         message = self.communicator.send().message.content
@@ -87,11 +89,13 @@ class QuestionAnalysisPrompter:
             return None,None
 
         before, after = message.split(", ")
+
         return before, after
 
     def identifyCompany(self, message):
+
         self.communicator.askGPT(self.config["company_identification_prompt"].format(text=message))
-        #TODO Create an array of tickers
+
         return self.communicator.send().message.content
 
 # --- TEST CODE ---
