@@ -14,6 +14,9 @@ class PolygonAPICommunicator:
     losers_request_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/losers?include_otc={include_otc}&apiKey={api_key}"
     ticker_verification_url = "https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={api_key}"
 
+    # String for formatting dates for the Polygon API
+    date_formatting_string = "%Y-%m-%dT%H:%M:%SZ"
+
     # Just saves the API key
     def __init__(self, api_key):
         self.api_key = api_key
@@ -21,8 +24,10 @@ class PolygonAPICommunicator:
     def verifyTicker(self, ticker):
         request_url = self.ticker_verification_url.format(ticker = ticker, api_key = self.api_key)
         response = requests.get(request_url).json()
-        print(response)
         return len(response["results"]) != 0
+
+    def formatDate(self, date):
+        return date.stftime(self.date_formatting_string)
 
     # Get top 20 gainers
     # Returns an array of dictionaries {ticker : {"volume" : volume, "change_percent": percent cahnge since yesterday, "volume_yesterday" : volume yesterday, "price" : price}
@@ -45,10 +50,12 @@ class PolygonAPICommunicator:
         return tickers
 
     # Get news for a particular stock ticker between date_after and date_before (formatted in UTC). Limited to "limit" amount of articles
-    def getNews(self, ticker, date_after, date_before, limit):
+    def getNews(self, ticker, utc_after, utc_before, limit):
+
+        date_after = self.formatDate(utc_after)
+        date_before = self.formatDate(utc_before)
 
         # Submit a request to the polygon API
-        # TODO Add error handling for bad requests
         request_url = self.news_request_url.format(ticker=ticker,utc_after=date_after,utc_before=date_before,limit=limit, api_key=self.api_key)
         response = requests.get(request_url).json()
         articles = []

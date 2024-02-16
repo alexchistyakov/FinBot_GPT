@@ -41,13 +41,14 @@ class GPTCommunicator:
         self.current_messages = []
         self.setBehavior(self.system_behavior)
 
-class SummarizationPrompter:
+class AIPrompter:
 
-    # Initializes and sets behavior
-    def __init__(self, communicator,config):
+    def __init__(self, communicator, config):
         self.communicator = communicator
         self.config = config
         self.communicator.setBehavior(config["behavior"])
+
+class SummarizationPrompter(AIPrompter):
 
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
     # Summary will have a length between min_length and max_length and will focus on extracting information about {focus}. If there is no relevant information about {focus}, function should return NO INFO
@@ -70,13 +71,7 @@ class SummarizationPrompter:
         return self.communicator.send().message.content
 
 # Disects user questions into data ready for Polygon API
-class QuestionAnalysisPrompter:
-
-    def __init__(self, communicator,config):
-
-        self.communicator = communicator
-        self.config = config
-        self.communicator.setBehavior(config["behavior"])
+class QuestionAnalysisPrompter(AIPrompter):
 
     def identifyTimeFrame(self, message):
 

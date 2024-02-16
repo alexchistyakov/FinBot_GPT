@@ -6,11 +6,10 @@ from openai import OpenAI, RateLimitError
 from datetime import datetime, timezone, timedelta
 
 class FinBot:
-    # Dictionary for storing summaries by ticker so we can preform QA, request sentiment, etc. with them later
-    date_formatting_string = "%Y-%m-%dT%H:%M:%SZ"
 
     def __init__(self):
 
+        # Create the OpenAI client
         openai_client = OpenAI()
 
         # Load config, keys and sample files
@@ -32,10 +31,7 @@ class FinBot:
         # Create a prompter to make requests and log conversation for news summaries and question analysis
         self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client, self.config["model-name"]), self.config["prompts"]["summarizer"])
 
-    def formatDate(self, date):
-
-        return date.strftime(self.date_formatting_string)
-
+    # Parse date from human input
     def smartDateParse(self, text):
 
         after, before = self.question_prompter.identifyTimeFrame(text)
@@ -44,10 +40,10 @@ class FinBot:
 
         return before, after
 
+    # Get news summaries for ticker based on parsed dates from human input
     def smartNewsSummariesForTicker(self, ticker, date_text, min_length=10, max_length=30, limit=20):
         before, after = self.smartDateParse(date_text)
 
-        # TEMP CODE FOR DEMO
         summaries = self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
 
         if "error" in summaries:
@@ -62,20 +58,8 @@ class FinBot:
 
         return {"summaries":summaries, "overall_summary": overall}
 
-        # return self.getNewsSummariesForTicker(ticker, after, before, min_length=min_length, max_length=max_length, limit=limit)
-
-    def getTopGainers(self, include_otc=False):
-
-        return self.polygon_com.getTopGainers(include_otc)
-
-    def getTopLosers(self, include_otc=False):
-
-        return self.polygon_com.getTopLosers(include_otc)
-
+    # Get news summaries for ticker between date_before and date_after
     def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
-
-        date_after = self.formatDate(datetime_after)
-        date_before = self.formatDate(datetime_before)
 
         try:
             news = self.polygon_com.getNews(ticker, date_after, date_before, limit)
@@ -87,6 +71,7 @@ class FinBot:
             summaries = []
 
             for pair in news:
+
                 summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker, min_length=min_length, max_length=max_length)
                 # Flush to avoid token overflow
                 self.summary_prompter.communicator.flush()
@@ -103,9 +88,7 @@ class FinBot:
     # Get a summary of summaries
     def getOverallSummary(self, summaries, min_length=10, max_length=50):
 
-        # Get only text
         try:
-
             text_only_summaries = [summary["text"] for summary in summaries]
             return self.summary_prompter.summarizeAll(text_only_summaries, min_length=min_length, max_length=max_length)
 
@@ -123,7 +106,7 @@ class FinBot:
 
         return True if self.summary_prompter.lookForCatalyst(text) == "YES" else False
 
-    # TODO: Format object. Temproarily just print statements because I don't know if we will be doing a stream or just a JSON object
+    # Get summaries for all top gaining stocks in hopes of identifying a catalyst
     def getGainerSummaries(self, amount=20):
         gainers = self.getTopGainers()[:amount-1]
 
@@ -131,6 +114,7 @@ class FinBot:
         # Get the summaries
         for item in gainers:
             ticker = item["ticker"]
+            # Calculate % volume increase since yesterday and round it down
             vi = round(((item["data"]["volume"] - item["data"]["volume_yesterday"])/item["data"]["volume_yesterday"]) * 100, 2)
             print("==================================")
 
