@@ -1,18 +1,20 @@
 import json
+
 from openai import OpenAI
 from datetime import datetime, timezone
 
 class OutOfTokensException(Exception):
     pass
+
 # A communicator class to easily send API requests to OpenAI API and store the message log
 # Is a separate class in case we end up swapping out GPT-4 for a smaller language model like Llama or Mistral
 class GPTCommunicator:
 
-    current_messages = []
-
     def __init__(self,client,model_name):
         self.client = client
         self.model_name = model_name
+
+        self.current_messages = []
 
     # Main send command that sends everything stored in current_messages to the API and saves the response
     def send(self):
@@ -21,7 +23,7 @@ class GPTCommunicator:
             messages= self.current_messages
         )
         self.saveResponse(completion.choices[0].message.content)
-        return completion.choices[0]
+        return completion.choices[0].message.content
 
     # Sends a "system" role message, declaring the context for this exchange (ex. "You are a financial expert")
     def setBehavior(self,system_behavior):
@@ -29,7 +31,7 @@ class GPTCommunicator:
         self.current_messages.append({"role": "system", "content":system_behavior})
 
     # Formats and sends a user question
-    def askGPT(self,message):
+    def ask(self,message):
         self.current_messages.append({"role": "user", "content":message})
 
     # Formats and saves a response
@@ -53,22 +55,22 @@ class SummarizationPrompter(AIPrompter):
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
     # Summary will have a length between min_length and max_length and will focus on extracting information about {focus}. If there is no relevant information about {focus}, function should return NO INFO
     def requestSummary(self, article, focus="everything", min_length=50, max_length=200):
-        self.communicator.askGPT(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
-        return self.communicator.send().message.content
+        self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
+        return self.communicator.send()
 
     def summarizeAll(self, summaries, min_length=50, max_length=200):
         joined_summaries = ";".join(summaries)
-        self.communicator.askGPT(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
-        return self.communicator.send().message.content
+        self.communicator.ask(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
+        return self.communicator.send()
 
     def lookForCatalyst(self, text):
-        self.communicator.askGPT(self.config["catalyst_prompt"].format(text=text))
-        return self.communicator.send().message.content
+        self.communicator.ask(self.config["catalyst_prompt"].format(text=text))
+        return self.communicator.send()
 
     def getSentiment(self, summaries):
         joined_summaries = ";".join(summaries)
-        self.communicator.askGPT(self.config["sentiment_prompt"].format(text=text))
-        return self.communicator.send().message.content
+        self.communicator.ask(self.config["sentiment_prompt"].format(text=text))
+        return self.communicator.send()
 
 # Disects user questions into data ready for Polygon API
 class QuestionAnalysisPrompter(AIPrompter):
@@ -76,8 +78,8 @@ class QuestionAnalysisPrompter(AIPrompter):
     def identifyTimeFrame(self, message):
 
         today = datetime.now(timezone.utc)
-        self.communicator.askGPT(self.config["time_frame_prompt"].format(text=message, date_today=today))
-        message = self.communicator.send().message.content
+        self.communicator.ask(self.config["time_frame_prompt"].format(text=message, date_today=today))
+        message = self.communicator.send()
         print(message)
 
         if message == "NONE":
@@ -89,9 +91,9 @@ class QuestionAnalysisPrompter(AIPrompter):
 
     def identifyCompany(self, message):
 
-        self.communicator.askGPT(self.config["company_identification_prompt"].format(text=message))
+        self.communicator.ask(self.config["company_identification_prompt"].format(text=message))
 
-        return self.communicator.send().message.content
+        return self.communicator.send()
 
 # --- TEST CODE ---
 # file = open("config.json")
