@@ -4,13 +4,11 @@ from gptcom import GPTCommunicator,SummarizationPrompter, QuestionAnalysisPrompt
 from polygoncom import PolygonAPICommunicator, FakeTickerException
 from openai import OpenAI, RateLimitError
 from datetime import datetime, timezone, timedelta
+from langchainsum import HuggingFaceCommunicator
 
 class FinBot:
 
     def __init__(self):
-
-        # Create the OpenAI client
-        openai_client = OpenAI()
 
         # Load config, keys and sample files
         config_file = open("config.json")
@@ -20,16 +18,34 @@ class FinBot:
         self.config = json.load(config_file)
         polygon_key = json.load(key_file)["POLYGON_API"]
 
+        communicator = None
+        prompts = self.config["prompts"]
+
+
+        if self.config["use-custom-prompts"]:
+            prompt_file = open("prompts/{file}.json".format(file=self.config["custom-prompt-file"]))
+            prompts = json.load(prompt_file)["prompts"]
+
+        if self.config["use-gpt"]:
+            # Create the OpenAI client
+            openai_client = OpenAI()
+            communicator = GPTCommunicator(openai_client,self.config["model-name"])
+
+        else:
+            # Create a Hugging Face pipeline
+            communicator = HuggingFaceCommunicator(self.config["model-name"],prompts["template"])
+
         # Close files
         config_file.close()
         key_file.close()
 
+
         # Create a my custom client to communicate/parse requests from the PolygonAPI
         self.polygon_com = PolygonAPICommunicator(polygon_key)
-        self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(openai_client, "gpt-4"), self.config["prompts"]["question_analyzer"])
+        self.question_prompter = QuestionAnalysisPrompter(communicator, prompts["question_analyzer"])
 
         # Create a prompter to make requests and log conversation for news summaries and question analysis
-        self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client, self.config["model-name"]), self.config["prompts"]["summarizer"])
+        self.summary_prompter = SummarizationPrompter(communicator, prompts["summarizer"])
 
     # Parse date from human input
     def smartDateParse(self, text):
@@ -62,7 +78,7 @@ class FinBot:
     def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
 
         try:
-            news = self.polygon_com.getNews(ticker, date_after, date_before, limit)
+            news = self.polygon_com.getNews(ticker, datetime_after, datetime_before, limit)
         except FakeTickerException as e:
             return {"error": "NOT A REAL TICKER"}
 
@@ -108,7 +124,7 @@ class FinBot:
 
     # Get summaries for all top gaining stocks in hopes of identifying a catalyst
     def getGainerSummaries(self, amount=20):
-        gainers = self.getTopGainers()[:amount-1]
+        gainers = self.polygon_com.getTopGainers()[:amount-1]
 
         res = []
         # Get the summaries
@@ -154,3 +170,13 @@ class FinBot:
             print("\n")
 
         return res
+
+# ----------- TEST CODE -------------
+today = datetime.now(timezone.utc)
+yesterday = today - timedelta(days=1)
+
+finbot = FinBot()
+for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=5):
+    print("---------------------------------")
+    print(summary["text"])
+print(finbot.smartDateParse("last week"))

@@ -1,19 +1,22 @@
 {
-  "model-name": "gpt-4",
+  "model-name": "meta-llama/Llama-2-7b-chat-hf",
+  "use-gpt": false,
+  "use-custom-prompts": true,
+  "custom-prompt-file": "llama",
   "prompts": {
     "summarizer": {
-      "behavior": "You are a financial expert looking to make good trades. Speak as concisely as possible, with the least amount of words to get your point accross",
-      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say NO INFO: {a}",
-      "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}",
-      "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}",
-      "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}",
-      "sentiment_prompt": "Based on the following summaries (separated by ;), describe the overall sentiment towards this stock",
-      "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action"
+      "behavior": "You are a financial expert. Speak as concisely as possible, with the least amount of words to get your point accross.",
+      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say NO INFO: {a}.",
+      "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}.",
+      "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}.",
+      "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}.",
+      "sentiment_prompt": "Based on the following summaries (separated by ;), describe the overall sentiment towards this stock.",
+      "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action."
     },
     "question_analyzer": {
-      "behavior": "Say as little as possible and keep your responses standardized so a program can easily extract information from your responses.",
-      "time_frame_prompt": "Today is {date_today}. Extract information about a time frame from this text: \"{text}\". Respond with two dates (formatted %Y-%m-%d %H:%M:%S%z), one for the begining of the time frame, one for the end, separated by a \", \". If a time frame cannot be identified, respond with NONE",
-      "company_identification_prompt": "What companies are being mentioned in this text? (output the companies' ticker symbols only): {text}"
+      "behavior": "Say as little as possible.",
+      "time_frame_prompt": "Today is {date_today}. Extract information about a time frame from this text: \"{text}\". Respond with two dates (formatted %Y-%m-%d %H:%M:%S%z), one for the begining of the time frame, one for the end, separated by \", \". If a time frame cannot be identified, respond with NONE.",
+      "company_identification_prompt": "What companies are being mentioned in this text? (output the companies' ticker symbols only): {text}."
     }
   }
 }

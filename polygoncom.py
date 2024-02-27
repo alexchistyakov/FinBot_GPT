@@ -27,11 +27,11 @@ class PolygonAPICommunicator:
         return len(response["results"]) != 0
 
     def formatDate(self, date):
-        return date.stftime(self.date_formatting_string)
+        return date.strftime(self.date_formatting_string)
 
     # Get top 20 gainers
     # Returns an array of dictionaries {ticker : {"volume" : volume, "change_percent": percent cahnge since yesterday, "volume_yesterday" : volume yesterday, "price" : price}
-    def getTopGainers(self, include_otc):
+    def getTopGainers(self, include_otc=False):
         request_url = self.gainers_request_url.format(include_otc=include_otc,api_key=self.api_key)
         response = requests.get(request_url).json()
         tickers = [{ "ticker": item["ticker"], "data" : { "volume" : item["day"]["v"], "change_percent" : item["todaysChangePerc"], "volume_yesterday" : item["prevDay"]["v"], "price" : item["min"]["c"] }} for item in response["tickers"]]
