@@ -2,13 +2,17 @@
 "prompts": {
     "template":"<s>[INST] <<SYS>>\n{behavior}\n<</SYS>>\n{query} [/INST]",
     "summarizer": {
-      "behavior": "You are a financial expert. Speak as concisely as possible, with the least amount of words to get your point accross. Follow given instructions precisely.",
-      "summary_prompt": "In a maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say \"NO INFO\" and \"NO INFO\" only: {a}.",
+      "behavior": "You are a financial expert who only communicates in JSON files. Your output is expected to be formatted according to the following BNF grammar: {grammar}",
+      "summary_prompt": "In a maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If no information that can help guide investment/trading decisions, set the variable \"contains_relevant_info_on_ticker\" to \"false\": {a}.",
       "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}.",
       "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}.",
       "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}.",
       "sentiment_prompt": "Based on the following summaries (separated by ;), describe the overall sentiment towards this stock.",
-      "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action."
+      "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action.",
+
+      "grammar": {
+          "summary_prompt": "space ::= \" \"?\nboolean ::= (\"true\" | \"false\") space\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"contains_info_on_ticker\\\"\" space \":\" space boolean \",\" space \"\\\"extracted_info_about_ticker\\\"\" space \":\" space string \",\" space \"\\\"ticker\\\"\" space \":\" space string \"}\" space"
+      }
     },
     "question_analyzer": {
       "behavior": "You are a robot. Follow instructions precisely. Say as little as possible.",

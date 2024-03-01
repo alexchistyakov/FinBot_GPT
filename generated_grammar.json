@@ -1,0 +1,1 @@
+{"grammar": "space ::= \" \"?\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"date_end\\\"\" space \":\" space string \",\" space \"\\\"date_start\\\"\" space \":\" space string \"}\" space"}

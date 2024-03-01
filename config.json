@@ -1,8 +1,8 @@
 {
-  "model-name": "meta-llama/Llama-2-7b-chat-hf",
+  "model-name": "mistralai/Mistral-7B-Instruct-v0.2",
   "use-gpt": false,
   "use-custom-prompts": true,
-  "custom-prompt-file": "llama",
+  "custom-prompt-file": "mistral",
   "prompts": {
     "summarizer": {
       "behavior": "You are a financial expert. Speak as concisely as possible, with the least amount of words to get your point accross.",

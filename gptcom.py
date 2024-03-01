@@ -2,6 +2,7 @@ import json
 
 from openai import OpenAI
 from datetime import datetime, timezone
+from logger import NeuroLogger
 
 class OutOfTokensException(Exception):
     pass
@@ -48,24 +49,33 @@ class AIPrompter:
     def __init__(self, communicator, config):
         self.communicator = communicator
         self.config = config
-        self.communicator.setBehavior(config["behavior"])
+
 
 class SummarizationPrompter(AIPrompter):
 
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
     # Summary will have a length between min_length and max_length and will focus on extracting information about {focus}. If there is no relevant information about {focus}, function should return NO INFO
     def requestSummary(self, article, focus="everything", min_length=50, max_length=200):
+
+        if "grammar" in self.config:
+            self.communicator.setBehavior(self.config["behavior"].format(grammar=self.config["grammar"]["summary_prompt"]))
+        else:
+            self.communicator.setBehavior(self.config["behavior"])
+
         self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
-        return self.communicator.send()
+        result = self.communicator.send()
+        return result
 
     def summarizeAll(self, summaries, min_length=50, max_length=200):
         joined_summaries = ";".join(summaries)
         self.communicator.ask(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
-        return self.communicator.send()
+        result = self.communicator.send()
+        return result
 
     def lookForCatalyst(self, text):
         self.communicator.ask(self.config["catalyst_prompt"].format(text=text))
-        return self.communicator.send()
+        result = self.communicator.send()
+        return result
 
     def getSentiment(self, summaries):
         joined_summaries = ";".join(summaries)
@@ -83,9 +93,11 @@ class QuestionAnalysisPrompter(AIPrompter):
         print(message)
 
         if message == "NONE":
+            self.logger.logDateDescription(message, "NONE", "NONE")
             return None,None
 
         before, after = message.split(", ")
+
 
         return before, after
 

@@ -29,11 +29,13 @@ class FinBot:
         if self.config["use-gpt"]:
             # Create the OpenAI client
             openai_client = OpenAI()
-            communicator = GPTCommunicator(openai_client,self.config["model-name"])
+            self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(openai_client,self.config["model-name"]), prompts["question_analyzer"])
+            self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client,self.config["model-name"]), prompts["summarizer"])
 
         else:
             # Create a Hugging Face pipeline
-            communicator = HuggingFaceCommunicator(self.config["model-name"],prompts["template"])
+            self.question_prompter = QuestionAnalysisPrompter(HuggingFaceCommunicator(self.config["model-name"],prompts["template"]), prompts["question_analyzer"])
+            self.summary_prompter = SummarizationPrompter(HuggingFaceCommunicator(self.config["model-name"],prompts["template"]), prompts["summarizer"])
 
         # Close files
         config_file.close()
@@ -42,10 +44,6 @@ class FinBot:
 
         # Create a my custom client to communicate/parse requests from the PolygonAPI
         self.polygon_com = PolygonAPICommunicator(polygon_key)
-        self.question_prompter = QuestionAnalysisPrompter(communicator, prompts["question_analyzer"])
-
-        # Create a prompter to make requests and log conversation for news summaries and question analysis
-        self.summary_prompter = SummarizationPrompter(communicator, prompts["summarizer"])
 
     # Parse date from human input
     def smartDateParse(self, text):
@@ -176,7 +174,7 @@ today = datetime.now(timezone.utc)
 yesterday = today - timedelta(days=1)
 
 finbot = FinBot()
-for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=5):
-    print("---------------------------------")
-    print(summary["text"])
-print(finbot.smartDateParse("last week"))
+#for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=4):
+#    print("---------------------------------")
+#    print(summary["text"])
+#finbot.getGainerSummaries()
