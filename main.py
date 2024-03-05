@@ -6,6 +6,10 @@ from openai import OpenAI, RateLimitError
 from datetime import datetime, timezone, timedelta
 from langchainsum import HuggingFaceCommunicator
 
+from CacheToolsUtils import RedisCache
+import redis
+from cachetools.keys import hashkey
+
 class FinBot:
 
     def __init__(self):
@@ -21,11 +25,16 @@ class FinBot:
         communicator = None
         prompts = self.config["prompts"]
 
-
+        # Check to see whether we are using custom prompts. If so, fetch them
         if self.config["use-custom-prompts"]:
             prompt_file = open("prompts/{file}.json".format(file=self.config["custom-prompt-file"]))
             prompts = json.load(prompt_file)["prompts"]
 
+        # Enable/disable caching
+        if self.config["cache"]["cache-output"]:
+            self.cache = RedisCache(redis.Redis(host=self.config["cache"]["redis-host"], port=self.config["cache"]["redis-port"]),ttl=None)
+
+        # Determine whether we are using the OpenAI pipeline or a custom HuggingFace model
         if self.config["use-gpt"]:
             # Create the OpenAI client
             openai_client = OpenAI()
@@ -74,21 +83,35 @@ class FinBot:
 
     # Get news summaries for ticker between date_before and date_after
     def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
-
-        try:
-            news = self.polygon_com.getNews(ticker, datetime_after, datetime_before, limit)
-        except FakeTickerException as e:
-            return {"error": "NOT A REAL TICKER"}
+        news = self.polygon_com.getNews(ticker, datetime_after, datetime_before, limit)
 
         try:
 
             summaries = []
 
             for pair in news:
+                summary = None
+                # Try retrieving from cache. If not, generate it
+                if self.cache != None:
+                    try:
+                        summary = self.cache.get(pair["url"])["extracted_summary"]
+                    except KeyError:
+                        # Generate the summary
+                        summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker, min_length=min_length, max_length=max_length)
+                        # Flush to avoid token overflow
+                        self.summary_prompter.communicator.flush()
 
-                summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker, min_length=min_length, max_length=max_length)
-                # Flush to avoid token overflow
-                self.summary_prompter.communicator.flush()
+                        self.cache.set(pair["url"], {
+                            "ticker":ticker,
+                            "text": pair["text"],
+                            "extracted_summary": summary
+                            }
+                        )
+
+                else:
+                    summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker, min_length=min_length, max_length=max_length)
+                    # Flush to avoid token overflow
+                    self.summary_prompter.communicator.flush()
 
                 # Check to make sure there was relevant information in this article about ticker since Polygon API sometimes returns irrelevant articles that briefly mention the ticker. If so, add it to the list of summaries
                 if summary != "NO INFO":

@@ -3,6 +3,11 @@
   "use-gpt": true,
   "use-custom-prompts": false,
   "custom-prompt-file": "mistral",
+  "cache": {
+    "cache-output": true,
+    "redis-host": "localhost",
+    "redis-port": 6379
+  },
   "prompts": {
     "summarizer": {
       "behavior": "You are a financial expert. Speak as concisely as possible, with the least amount of words to get your point accross.",

@@ -77,7 +77,7 @@ class PolygonAPICommunicator:
                 # Skip articles that cannot be accessed because of a paywall
                 continue
 
-            articles.append({"time" : time_published, "text" : article.text})
+            articles.append({"time" : time_published, "text" : article.text, "url" : url})
 
         return articles
 

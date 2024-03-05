@@ -1,5 +1,10 @@
 import hashlib
-from cachetools import cached, LRUCache
+
+import redis
+
+from cachetools import LRUCache
+from cachetools.keys import hashkey
+from CacheToolsUtils import cached, RedisCache
 
 import json
 
@@ -19,20 +24,32 @@ class GPTCommunicator:
         self.model_name = model_name
 
         self.current_messages = []
+        self.system_behavior = None
 
-    # Main send command that sends everything stored in current_messages to the API and saves the response
-    @cached(cache=LRUCache(maxsize=2048), key= lambda a: hashlib.sha256(repr(a.current_messages).encode()).hexdigest())
-    def send(self):
+    # Main send sub-command. Returns full message history for caching purposes
+    #@cached(cache=LRUCache(maxsize=2048), key= lambda a: hashlib.sha256(repr(a.current_messages).encode()).hexdigest())
+    #@cached(cache=RedisCache(redis.Redis(host="localhost"),ttl=None), key=lambda a: hashkey(a.current_messages[1]["content"]))
+    def sendRaw(self):
         completion = self.client.chat.completions.create(
             model = self.model_name,
             messages= self.current_messages
         )
-        return completion.choices[0].message.content
+        res = completion.choices[0].message.content
+        self.saveResponse(res)
+        return self.current_messages
+
+    # Main send command that sends everything stored in current_messages to the API and saves the response
+    def send(self):
+        res = self.sendRaw()[-1]["content"]
+        return res
+
 
     # Sends a "system" role message, declaring the context for this exchange (ex. "You are a financial expert")
     def setBehavior(self,system_behavior):
+        if self.system_behavior != None and len(self.current_messages) != 0:
+            self.current_messages.pop(0)
         self.system_behavior = system_behavior
-        self.current_messages.append({"role": "system", "content":system_behavior})
+        self.current_messages.insert(0,{"role": "system", "content":system_behavior})
 
     # Formats and sends a user question
     def ask(self,message):
@@ -66,7 +83,6 @@ class SummarizationPrompter(AIPrompter):
             self.communicator.setBehavior(self.config["behavior"])
 
         self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
-        print(self.communicator.current_messages)
         result = self.communicator.send()
         self.communicator.flush()
         return result
@@ -98,7 +114,6 @@ class QuestionAnalysisPrompter(AIPrompter):
         self.communicator.ask(self.config["time_frame_prompt"].format(text=message, date_today=today))
         message = self.communicator.send()
         self.communicator.flush()
-        print(message)
 
         if message == "NONE":
             self.logger.logDateDescription(message, "NONE", "NONE")
