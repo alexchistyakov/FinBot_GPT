@@ -1,3 +1,6 @@
+import hashlib
+from cachetools import cached, LRUCache
+
 import json
 
 from openai import OpenAI
@@ -18,12 +21,12 @@ class GPTCommunicator:
         self.current_messages = []
 
     # Main send command that sends everything stored in current_messages to the API and saves the response
+    @cached(cache=LRUCache(maxsize=2048), key= lambda a: hashlib.sha256(repr(a.current_messages).encode()).hexdigest())
     def send(self):
         completion = self.client.chat.completions.create(
             model = self.model_name,
             messages= self.current_messages
         )
-        self.saveResponse(completion.choices[0].message.content)
         return completion.choices[0].message.content
 
     # Sends a "system" role message, declaring the context for this exchange (ex. "You are a financial expert")
@@ -63,18 +66,22 @@ class SummarizationPrompter(AIPrompter):
             self.communicator.setBehavior(self.config["behavior"])
 
         self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
+        print(self.communicator.current_messages)
         result = self.communicator.send()
+        self.communicator.flush()
         return result
 
     def summarizeAll(self, summaries, min_length=50, max_length=200):
         joined_summaries = ";".join(summaries)
         self.communicator.ask(self.config["summarize_all_prompt"].format(text=joined_summaries,min_words=min_length,max_words=max_length))
         result = self.communicator.send()
+        self.communicator.flush()
         return result
 
     def lookForCatalyst(self, text):
         self.communicator.ask(self.config["catalyst_prompt"].format(text=text))
         result = self.communicator.send()
+        self.communicator.flush()
         return result
 
     def getSentiment(self, summaries):
@@ -90,6 +97,7 @@ class QuestionAnalysisPrompter(AIPrompter):
         today = datetime.now(timezone.utc)
         self.communicator.ask(self.config["time_frame_prompt"].format(text=message, date_today=today))
         message = self.communicator.send()
+        self.communicator.flush()
         print(message)
 
         if message == "NONE":

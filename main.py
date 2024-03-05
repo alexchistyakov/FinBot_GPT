@@ -174,7 +174,11 @@ today = datetime.now(timezone.utc)
 yesterday = today - timedelta(days=1)
 
 finbot = FinBot()
-#for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=4):
-#    print("---------------------------------")
-#    print(summary["text"])
+for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=4):
+    print("---------------------------------")
+    print(summary["text"])
+
+for summary in finbot.getNewsSummariesForTicker("AAPL", yesterday, today,limit=4):
+    print("---------------------------------")
+    print(summary["text"])
 #finbot.getGainerSummaries()
