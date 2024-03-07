@@ -21,6 +21,7 @@ class HuggingFaceCommunicator:
             attn_implementation="flash_attention_2",
             torch_dtype=torch.float16,
             device_map='auto',
+            load_in_8bit = True
             #device_map = {
             #    "transformer.word_embeddings": 0,
             #    "transformer.word_embeddings_layernorm": 0,
@@ -28,11 +29,11 @@ class HuggingFaceCommunicator:
             #    "transformer.h": 0,
             #    "transformer.ln_f": 0
             #},
-            quantization_config = BitsAndBytesConfig(
-                load_in_8bit = True,
-                load_in_4bit = False,
-                llm_int8_enable_fb32_cpu_offload = True
-            )
+            #quantization_config = BitsAndBytesConfig(
+            #    load_in_8bit = True,
+            #    load_in_4bit = False,
+            #    llm_int8_enable_fb32_cpu_offload = True
+            #)
         )
         # Set to eval mode
         model.eval()
@@ -62,8 +63,9 @@ class HuggingFaceCommunicator:
         self.behavior = behavior
 
     def send(self):
+        print(self.prompt_template.format(behavior=self.behavior,query=self.query))
         text = self.generate_text(self.prompt_template.format(behavior = self.behavior, query = self.query))[0]["generated_text"]
-        response = text.split("[/INST]",1)[1]
+        response = text.split("[/INST]",2)[2]
         return response
 
     def flush(self):

@@ -75,14 +75,14 @@ class SummarizationPrompter(AIPrompter):
 
     # Sends a summarization task to ChatGPT with the prompt outlined in the config
     # Summary will have a length between min_length and max_length and will focus on extracting information about {focus}. If there is no relevant information about {focus}, function should return NO INFO
-    def requestSummary(self, article, focus="everything", min_length=50, max_length=200):
+    def requestSummary(self, article, focus="everything", name=None, min_length=50, max_length=200):
 
         if "grammar" in self.config:
-            self.communicator.setBehavior(self.config["behavior"].format(grammar=self.config["grammar"]["summary_prompt"]))
+            self.communicator.setBehavior(self.config["behavior"].format(grammar=self.config["grammar"]["summary_prompt"], example=self.config["grammar"]["summary_example"]))
         else:
             self.communicator.setBehavior(self.config["behavior"])
 
-        self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article))
+        self.communicator.ask(self.config["summary_prompt"].format(minimum=min_length,maximum=max_length,focus=focus,a=article, name=name))
         result = self.communicator.send()
         self.communicator.flush()
         return result

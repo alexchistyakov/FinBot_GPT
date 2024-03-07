@@ -11,7 +11,7 @@
   "prompts": {
     "summarizer": {
       "behavior": "You are a financial expert. Speak as concisely as possible, with the least amount of words to get your point accross.",
-      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If the text doesn't contain any significant information on {focus} that can help guide investment/trading decisions, say NO INFO: {a}.",
+      "summary_prompt": "In a minimum of {minimum} words and maximum of {maximum} words, summarize the following text, focusing on extracting information about {name} (ticker symbol \"{focus}\") that can help guide investment/trading decisions. You MUST include information about major events involving the company. If no info about events involving {name} is present, say \"NO INFO\": {a}.",
       "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}.",
       "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}.",
       "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}.",

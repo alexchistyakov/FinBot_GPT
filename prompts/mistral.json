@@ -1,9 +1,9 @@
 {
 "prompts": {
-    "template":"<s>[INST] <<SYS>>\n{behavior}\n<</SYS>>\n{query} [/INST]",
+    "template":"[INST]<<SYS>>\n{behavior}\n<</SYS>>\n[/INST][INST]{query}[/INST]",
     "summarizer": {
-      "behavior": "You are a financial expert who only communicates in JSON files. Your output is expected to be formatted according to the following BNF grammar: {grammar}",
-      "summary_prompt": "In a maximum of {maximum} words, summarize the following text, focusing on extracting information about the company with ticker symbol \"{focus}\" that can help guide investment/trading decisions. If no information that can help guide investment/trading decisions, set the variable \"contains_relevant_info_on_ticker\" to \"false\": {a}.",
+      "behavior": "You are a financial expert who only communicates in JSON files. Follow given instructions as precisely as possible. You MUST format output according to the following BNF grammar:\n\n{grammar}\n\n EXAMPLE:\n\n{example}\n\n",
+      "summary_prompt": "CONTEXT:\n\n\"{a}\".\n\nPROMPT:\n\nIn a maximum of {maximum} words, summarize the following text, focusing on extracting information about {name} (ticker symbol \"{focus}\") that can help guide investment/trading decisions. You MUST include any information about major events involving the company. If no information about any events involving the company is present, set the variable \"contains_relevant_info_on_ticker\" to \"false\".",
       "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}.",
       "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}.",
       "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}.",
@@ -11,11 +11,12 @@
       "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action.",
 
       "grammar": {
-          "summary_prompt": "space ::= \" \"?\nboolean ::= (\"true\" | \"false\") space\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"contains_info_on_ticker\\\"\" space \":\" space boolean \",\" space \"\\\"extracted_info_about_ticker\\\"\" space \":\" space string \",\" space \"\\\"ticker\\\"\" space \":\" space string \"}\" space"
+          "summary_prompt": "space ::= \" \"?\nboolean ::= (\"true\" | \"false\") space\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"contains_relevant_info_on_ticker\\\"\" space \":\" space boolean \",\" space \"\\\"extracted_info_about_ticker\\\"\" space \":\" space string \",\" space \"\\\"ticker\\\"\" space \":\" space string \"}\" space",
+          "summary_example" : "{\n\"contains_relevant_info_on_ticker\": true,\n\"extracted_info_about_ticker\": \"Tesla, Inc. common stock (TSLA) Ark Invest purchased a total of 79,956 shares worth $14.45 million on a day when the shares closed 3.9% lower at $180.74.\",\n\"ticker\": \"TSLA\"\n}"
       }
     },
     "question_analyzer": {
-      "behavior": "You are a robot. Follow instructions precisely. Say as little as possible.",
+      "behavior": "You are a robot. Follow instructions precisely. You MUST format output accoding to the following BNF grammar:\n\n",
       "time_frame_prompt": "Today is {date_today}. Extract information about a time frame from this text: \"{text}\". Respond with two dates and two dates only (formatted %Y-%m-%d %H:%M:%S%z), one for the begining of the time frame, one for the end. Separate the dates with \", \". If a time frame cannot be identified, respond with NONE.",
       "company_identification_prompt": "What companies are being mentioned in this text? (output the companies' ticker symbols only): {text}."
     }

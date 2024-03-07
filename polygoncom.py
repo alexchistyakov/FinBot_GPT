@@ -12,7 +12,8 @@ class PolygonAPICommunicator:
     news_request_url = "https://api.polygon.io/v2/reference/news?ticker={ticker}&published_utc.gte={utc_after}&published_utc.lte={utc_before}&limit={limit}&apiKey={api_key}"
     gainers_request_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?include_otc={include_otc}&apiKey={api_key}"
     losers_request_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/losers?include_otc={include_otc}&apiKey={api_key}"
-    ticker_verification_url = "https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={api_key}"
+    ticker_url = "https://api.polygon.io/v3/reference/tickers?ticker={ticker}&apiKey={api_key}"
+    ticker_list_url = "https://api.polygon.io/v3/reference/tickers?active=true&market=stocks&exchange=XNAS&sort=last_updated_utc&apiKey={api_key}"
 
     # String for formatting dates for the Polygon API
     date_formatting_string = "%Y-%m-%dT%H:%M:%SZ"
@@ -81,3 +82,21 @@ class PolygonAPICommunicator:
 
         return articles
 
+    def getName(self, ticker):
+        request_url = self.ticker_url.format(ticker=ticker,api_key=self.api_key)
+        response = requests.get(request_url).json()
+
+        results = response["results"]
+
+        if len(results) != 0:
+            return results[0]["name"]
+
+        return None
+
+    # Temp function
+    def get100Tickers(self):
+        request_url = self.ticker_list_url.format(api_key=self.api_key)
+        response = requests.get(request_url).json()
+
+        results = [result["ticker"] for result in response["results"]]
+        return results
