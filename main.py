@@ -1,10 +1,10 @@
 import json
 import timeit
-from gptcom import GPTCommunicator,SummarizationPrompter, QuestionAnalysisPrompter
-from polygoncom import PolygonAPICommunicator, FakeTickerException
+from prompters import SummarizationPrompter, QuestionAnalysisPrompter
+from polygoncom import PolygonAPICommunicator
 from openai import OpenAI, RateLimitError
 from datetime import datetime, timezone, timedelta
-from langchainsum import HuggingFaceCommunicator
+from ai_communicators import HuggingFaceCommunicator, GPTCommunicator
 
 from CacheToolsUtils import RedisCache
 import hashlib
@@ -46,7 +46,7 @@ class FinBot:
 
         else:
             # Create a Hugging Face pipeline
-            communicator = HuggingFaceCommunicator(self.config["model-name"],prompts["template"])
+            communicator = HuggingFaceCommunicator(self.config["model-name"])
             self.question_prompter = QuestionAnalysisPrompter(communicator, prompts["question_analyzer"])
             self.summary_prompter = SummarizationPrompter(communicator, prompts["summarizer"])
 
@@ -55,7 +55,7 @@ class FinBot:
         key_file.close()
 
 
-        # Create a my custom client to communicate/parse requests from the PolygonAPI
+        # Create my custom client to communicate/parse requests from the PolygonAPI
         self.polygon_com = PolygonAPICommunicator(polygon_key)
 
     # Parse date from human input
@@ -85,6 +85,12 @@ class FinBot:
 
         return {"summaries":summaries, "overall_summary": overall}
 
+    def num_tokens_from_string(self,string: str) -> int:
+        """Returns the approximate number of tokens per prompt"""
+        num_tokens = int(len(string.split()) * 1.4)
+
+        return num_tokens
+
     # Get news summaries for ticker between date_before and date_after
     def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
         news = self.polygon_com.getNews(ticker, datetime_after, datetime_before, limit)
@@ -102,6 +108,12 @@ class FinBot:
                     try:
                         summary = self.cache.get(cache_key)["extracted_summary"]
                     except KeyError:
+                        tokens = self.num_tokens_from_string(pair["text"])
+                        print("TOKENS:")
+                        print(tokens)
+                        if tokens > 8192:
+                            print("TOO LONG====================")
+                            continue
                         # Generate the summary
                         summary = self.summary_prompter.requestSummary(pair["text"],name=name, focus=ticker, min_length=min_length, max_length=max_length)
                         # Flush to avoid token overflow
@@ -115,13 +127,25 @@ class FinBot:
                         )
 
                 else:
+                    tokens = 0
+                    for message in self.summary_prompter.communicator.messages:
+                        tokens += self.num_tokens_from_string(message["content"])
+                    if tokens > 8192:
+                        print("TOO LONG====================")
+                        continue
                     summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker,name=name, min_length=min_length, max_length=max_length)
                     # Flush to avoid token overflow
                     self.summary_prompter.communicator.flush()
 
                 # Check to make sure there was relevant information in this article about ticker since Polygon API sometimes returns irrelevant articles that briefly mention the ticker. If so, add it to the list of summaries
-                if summary != "NO INFO":
-                    summaries.append({"time" : pair["time"], "text" : summary})
+                #if summary != "NO INFO":
+                print("=====================[ {source} ]=======================".format(source=pair["source"]))
+                print(pair["text"])
+                print("\nURL: "+pair["url"])
+                print("--------------------SUMMARY-----------------------")
+                print(summary)
+                print("=====================================================")
+                summaries.append({"time" : pair["time"], "text" : summary})
 
             return summaries
 
@@ -199,32 +223,25 @@ class FinBot:
         return res
 
 # ----------- TEST CODE -------------
-#    def temp(ticker):
-#        today = datetime.now(timezone.utc)
-#        yesterday = today - timedelta(years=5)
-#        for summary in finbot.getNewsSummariesForTicker(ticker, yesterday, today,limit=1000):
-#            print("---------------------------------")
-#            print(summary["text"])
-#
-#    finbot = FinBot()
-#    tickers = finbot.polygon_com.get100Tickers()
-#    print(tickers)
-#
-#    temp("AAPL")
-#    temp("X")
-#    temp("INTC")
-#    temp("NVDA")
-#    temp("TSLA")
-#    temp("CAKE")
-#    temp("LULU")
-#    temp("AMZN")
-#    temp("META")
-#    temp("V")
-#    temp("JPM")
-#    temp("PG")
-#    temp("AMD")
-#    temp("AMC")
-#    temp("KO")
-#    temp("BAC")
-#
-#    finbot.getGainerSummaries()
+def temp(ticker):
+    today = datetime.now(timezone.utc)
+    yesterday = today - timedelta(days=21900)
+    finbot.getNewsSummariesForTicker(ticker, yesterday, today,limit=100)
+
+finbot = FinBot()
+tickers = finbot.polygon_com.get100Tickers()
+
+temp("NFL")
+temp("BAC")
+temp("INTC")
+temp("GE")
+temp("INTC")
+temp("PG")
+temp("TSLA")
+temp("NVDA")
+temp("AMZN")
+temp("GOOG")
+temp("COIN")
+
+for ticker in tickers:
+    temp(ticker)

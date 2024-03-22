@@ -2,6 +2,10 @@ import requests
 import json
 from newspaper import Article
 import dateutil.parser
+from requests.auth import HTTPBasicAuth
+from http.cookies import SimpleCookie
+
+from oauthlib.oauth2 import WebApplicationClient
 
 class FakeTickerException(Exception):
     pass
@@ -64,6 +68,11 @@ class PolygonAPICommunicator:
 
         # Loop through results
         for result in response["results"]:
+            # TEMP SKIP. Newspaper3k can't scrape these articles and just scrapes the copyright info at the bottom
+            if result["publisher"]["name"] == "Zacks Investment Research":
+                continue
+            if result["publisher"]["name"] == "MarketWatch":
+                continue
             # Get article URL from response
             url = result["article_url"]
             time_published = dateutil.parser.parse(result["published_utc"])
@@ -74,11 +83,13 @@ class PolygonAPICommunicator:
             try:
                 article.download()
                 article.parse()
-            except:
-                # Skip articles that cannot be accessed because of a paywall
+            except Exception as e:
+                print("!!!!!!!!!!!!!!!!!!")
+                print(result["publisher"]["name"])
+                print(e)
                 continue
 
-            articles.append({"time" : time_published, "text" : article.text, "url" : url})
+            articles.append({"time" : time_published, "text" : article.text, "url" : url, "source":result["publisher"]["name"]})
 
         return articles
 

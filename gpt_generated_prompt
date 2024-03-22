@@ -1,0 +1,8 @@
+For each provided article, analyze the content to identify and extract specific information related to the stock ticker symbol "{ticker}". Your task is to parse through the article to determine if it contains any relevant information about this particular stock ticker, including any positions held by individuals or firms mentioned in the article, recommendations regarding buying, selling, or holding the stock, notable changes in ownership, relative weighting compared to indices or peers, and any significant price movements or forecasts.
+
+If the article contains pertinent information about the stock ticker "{ticker}", your response should be a structured JSON object comprising the following keys:
+
+"contains_relevant_info_on_ticker": set to true if the article contains information relevant to the ticker, otherwise false.
+"extracted_info_about_ticker": a string summarizing the pertinent details found in the article. This summary should include any positions held, recommendations made, changes in ownership or weighting, and any significant price actions related to the stock ticker "{ticker}".
+"ticker": the stock ticker symbol being analyzed.
+Ensure the response adheres strictly to this format, providing a concise and accurate summary of the relevant information for the specified stock ticker. This task requires attention to detail and the ability to distill complex financial data and opinions into a structured and easily understandable format.

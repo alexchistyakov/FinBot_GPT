@@ -1,18 +1,29 @@
 {
-"prompts": {
-    "template":"[INST]<<SYS>>\n{behavior}\n<</SYS>>\n[/INST][INST]{query}[/INST]",
+  "model-config":{
+    "kwargs": {
+      "device_map": "auto",
+      "max_length": 1200,
+      "temperature": 0.01
+    },
+    "repetition_penalty":1.1,
+    "max_new_tokens":300,
+    "attn_implementation": "flash_attn_2"
+  },
+  "prompts": {
     "summarizer": {
-      "behavior": "You are a financial expert who only communicates in JSON files. Follow given instructions as precisely as possible. You MUST format output according to the following BNF grammar:\n\n{grammar}\n\n EXAMPLE:\n\n{example}\n\n",
-      "summary_prompt": "CONTEXT:\n\n\"{a}\".\n\nPROMPT:\n\nIn a maximum of {maximum} words, summarize the following text, focusing on extracting information about {name} (ticker symbol \"{focus}\") that can help guide investment/trading decisions. You MUST include any information about major events involving the company. If no information about any events involving the company is present, set the variable \"contains_relevant_info_on_ticker\" to \"false\".",
+      "summary_prompt": "## CONTEXT ##\n\nBelow is an article. Absorb the information and be ready to answer a question about it.\n\n# START OF ARTICLE #\n\n{a}\n\n# END OF ARTICLE #\n\n## OBJECTIVE ##\n\nYour task is to extract and summarize information about the company \"{name}\" (ticker symbol: {focus}) in a maximum of {maximum} words. Only include information that can help guide investment/trading decisions. You MUST include any information about any major events involving the company and other news-worthy information.\n\n## STYLE ##\n\nYou are a financial expert. Follow the writing style of a Bloomberg Terminal and leading financial experts. Speak concisely, using as few words as possible to get you point accross.\n\n## RESPONSE ##\n\nYou MUST respond with a JSON object that contains the following keys:\n\"contains_relevant_info_on_ticker\": set to true if the article contains information relevant to the ticker, otherwise false.\n\"extracted_info_about_ticker\": a string summarizing the pertinent details found in the article. This summary should include any positions held, recommendations made, changes in ownership or weighting, and any significant price actions related to the stock ticker \"{focus}\".\n\"ticker\": the stock ticker symbol being analyzed.\nEnsure your reponse adherezs strictly to this format. This task requires attention to detail and the ability to disctill complex financial data and opinions into a structured and easily understandable format.",
+      "self-verification-prompt": "Does the following text contain any news-worthy information about {ticker}?: {text}\n\nRespond with YES or NO",
       "qa_prompt": "Here is a list of news summaries (separated by ;): {summaries}. Based on the aforementioned summaries, answer the following question: {question}.",
       "summarize_all_prompt": "Based on the following list of summaries (separated by ;), generate an brief description (minimum of {min_words}, maxiumum of {max_words}) of what is going on with the stock: {text}.",
       "catalyst_prompt": "Does the following text contain any information about events regarding the company that can indicate why the stock is moving? Respond with YES or NO: {text}.",
       "sentiment_prompt": "Based on the following summaries (separated by ;), describe the overall sentiment towards this stock.",
       "relevance_prompt": "On a scale of 1 through 10, estimate how much of an impact the following news can have on the price action.",
 
-      "grammar": {
-          "summary_prompt": "space ::= \" \"?\nboolean ::= (\"true\" | \"false\") space\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"contains_relevant_info_on_ticker\\\"\" space \":\" space boolean \",\" space \"\\\"extracted_info_about_ticker\\\"\" space \":\" space string \",\" space \"\\\"ticker\\\"\" space \":\" space string \"}\" space",
-          "summary_example" : "{\n\"contains_relevant_info_on_ticker\": true,\n\"extracted_info_about_ticker\": \"Tesla, Inc. common stock (TSLA) Ark Invest purchased a total of 79,956 shares worth $14.45 million on a day when the shares closed 3.9% lower at $180.74.\",\n\"ticker\": \"TSLA\"\n}"
+      "grammar-UNUSED": {
+          "summary_prompt": "space ::= \" \"?\nboolean ::= (\"true\" | \"false\") space\nstring ::=  \"\\\"\" (\n        [^\"\\\\] |\n        \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])\n      )* \"\\\"\" space \nroot ::= \"{\" space \"\\\"contains_relevant_info_on_ticker\\\"\" space \":\" space boolean \",\" space \"\\\"extracted_info_about_ticker\\\"\" space \":\" space string \",\" space \"\\\"ticker\\\"\" space \":\" space string \"}\" space"
+      },
+      "self-check":{
+          "summary_prompt" : "{\n\"contains_relevant_info_on_ticker\": true,\n\"extracted_info_about_ticker\": \"Tesla, Inc. common stock (TSLA) Ark Invest purchased a total of 79,956 shares worth $14.45 million on a day when the shares closed 3.9% lower at $180.74.\",\n\"ticker\": \"TSLA\"\n}"
       }
     },
     "question_analyzer": {

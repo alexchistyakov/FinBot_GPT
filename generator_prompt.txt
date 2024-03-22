@@ -1,0 +1,19 @@
+[INST]
+CONTEXT:
+
+"Parkev Tatevosian, CFA has no position in any of the stocks mentioned. The Motley Fool has positions in and recommends Nvidia. The Motley Fool recommends Intel and recommends the following options: long January 2023 $57.50 calls on Intel, long January 2025 $45 calls on Intel, and short May 2024 $47 calls on Intel. The Motley Fool has a disclosure policy.
+
+Parkev Tatevosian is an affiliate of The Motley Fool and may be compensated for promoting its services. If you choose to subscribe through his link, he will earn some extra money that supports his channel. His opinions remain his own and are unaffected by The Motley Fool.".
+
+RESPONSE:
+
+{
+  "contains_relevant_info_on_ticker": true,
+  "extracted_info_about_ticker": "[Parkev Tatevosian, CFA has no position in INTC. The Motley Fool holds positions in INTC and recommends buying the stock and certain call options. As of January 2023, these options include long January 2023 $57.50 calls, long January 2025 $45 calls, and short May 2024 $47 calls.]",
+  "ticker": "INTC"
+}
+
+PROMPT:
+
+Generate a prompt that made you produce this respone.
+[/INST]
