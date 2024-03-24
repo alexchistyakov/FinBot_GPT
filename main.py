@@ -1,10 +1,10 @@
 import json
 import timeit
-from prompters import SummarizationPrompter, QuestionAnalysisPrompter
-from polygoncom import PolygonAPICommunicator
-from openai import OpenAI, RateLimitError
+from ai.prompters import SummarizationPrompter, QuestionAnalysisPrompter
+from financial.polygon import *
+from openai import OpenAI, RateLimitError, BadRequestError
 from datetime import datetime, timezone, timedelta
-from ai_communicators import HuggingFaceCommunicator, GPTCommunicator
+from ai.communicators import HuggingFaceCommunicator, GPTCommunicator
 
 from CacheToolsUtils import RedisCache
 import hashlib
@@ -13,50 +13,39 @@ from cachetools.keys import hashkey
 
 class FinBot:
 
+    key_path = "../keys.json"
+    config_path = "config.json"
+
     def __init__(self):
+        # Load configuration and initialize services
+        self._load_configuration()
+        self._initialize_services()
+        self._initialize_cache()
 
-        # Load config, keys and sample files
-        config_file = open("config.json")
-        key_file = open("../keys.json")
+    def _load_configuration(self):
+        with open(self.config_path) as config_file, open(self.key_path) as key_file:
+            self.config = json.load(config_file)
+            self.polygon_key = json.load(key_file)["POLYGON_API"]
 
-        self.cache = None
-
-        # Convert config, keys and sample files into dictionaries
-        self.config = json.load(config_file)
-        polygon_key = json.load(key_file)["POLYGON_API"]
-
-        communicator = None
-        prompts = self.config["prompts"]
-
-        # Check to see whether we are using custom prompts. If so, fetch them
-        if self.config["use-custom-prompts"]:
-            prompt_file = open("prompts/{file}.json".format(file=self.config["custom-prompt-file"]))
-            prompts = json.load(prompt_file)["prompts"]
-
-        # Enable/disable caching
-        if self.config["cache"]["cache-output"]:
-            self.cache = RedisCache(redis.Redis(host=self.config["cache"]["redis-host"], port=self.config["cache"]["redis-port"]),ttl=None)
-
-        # Determine whether we are using the OpenAI pipeline or a custom HuggingFace model
+    def _initialize_services(self):
+        # Setup based on configuration
         if self.config["use-gpt"]:
-            # Create the OpenAI client
             openai_client = OpenAI()
-            self.question_prompter = QuestionAnalysisPrompter(GPTCommunicator(openai_client,self.config["model-name"]), prompts["question_analyzer"])
-            self.summary_prompter = SummarizationPrompter(GPTCommunicator(openai_client,self.config["model-name"]), prompts["summarizer"])
-
+            gpt_communicator = GPTCommunicator(openai_client, self.config["model-name"])
+            self.question_prompter = QuestionAnalysisPrompter(gpt_communicator, self.config["prompts"]["question_analyzer"])
+            self.summary_prompter = SummarizationPrompter(gpt_communicator, self.config["prompts"]["summarizer"])
         else:
-            # Create a Hugging Face pipeline
             communicator = HuggingFaceCommunicator(self.config["model-name"])
-            self.question_prompter = QuestionAnalysisPrompter(communicator, prompts["question_analyzer"])
-            self.summary_prompter = SummarizationPrompter(communicator, prompts["summarizer"])
+            self.question_prompter = QuestionAnalysisPrompter(communicator, self.config["prompts"]["question_analyzer"])
+            self.summary_prompter = SummarizationPrompter(communicator, self.config["prompts"]["summarizer"])
 
-        # Close files
-        config_file.close()
-        key_file.close()
+        self.polygon_com = PolygonAPICommunicator(self.polygon_key)
 
-
-        # Create my custom client to communicate/parse requests from the PolygonAPI
-        self.polygon_com = PolygonAPICommunicator(polygon_key)
+    def _initialize_cache(self):
+        if self.config["cache"]["cache-output"]:
+            self.cache = RedisCache(redis.Redis(host=self.config["cache"]["redis-host"], port=self.config["cache"]["redis-port"]), ttl=None)
+        else:
+            self.cache = None
 
     # Parse date from human input
     def smartDateParse(self, text):
@@ -85,16 +74,10 @@ class FinBot:
 
         return {"summaries":summaries, "overall_summary": overall}
 
-    def num_tokens_from_string(self,string: str) -> int:
-        """Returns the approximate number of tokens per prompt"""
-        num_tokens = int(len(string.split()) * 1.4)
-
-        return num_tokens
-
     # Get news summaries for ticker between date_before and date_after
     def getNewsSummariesForTicker(self, ticker, datetime_after, datetime_before, min_length=10, max_length=90, limit=20):
-        news = self.polygon_com.getNews(ticker, datetime_after, datetime_before, limit)
-        name = self.polygon_com.getName(ticker)
+        news = self.polygon_com.get_news(ticker, datetime_after, datetime_before, limit)
+        name = self.polygon_com.get_name(ticker)
 
         try:
 
@@ -104,18 +87,16 @@ class FinBot:
                 summary = None
                 # Try retrieving from cache. If not, generate it
                 if self.cache != None:
-                    cache_key = [pair["url"],ticker]
+                    cache_key = str([pair["url"],ticker])
+                    # Generate the summary
                     try:
                         summary = self.cache.get(cache_key)["extracted_summary"]
+                        print("Retrieved from cache")
                     except KeyError:
-                        tokens = self.num_tokens_from_string(pair["text"])
-                        print("TOKENS:")
-                        print(tokens)
-                        if tokens > 8192:
-                            print("TOO LONG====================")
+                        try:
+                            summary = self.summary_prompter.requestSummary(pair["text"],name=name, focus=ticker, min_length=min_length, max_length=max_length)
+                        except BadRequestError:
                             continue
-                        # Generate the summary
-                        summary = self.summary_prompter.requestSummary(pair["text"],name=name, focus=ticker, min_length=min_length, max_length=max_length)
                         # Flush to avoid token overflow
                         self.summary_prompter.communicator.flush()
 
@@ -125,15 +106,13 @@ class FinBot:
                             "extracted_summary": summary
                             }
                         )
+                        print("Saved to cache")
 
                 else:
-                    tokens = 0
-                    for message in self.summary_prompter.communicator.messages:
-                        tokens += self.num_tokens_from_string(message["content"])
-                    if tokens > 8192:
-                        print("TOO LONG====================")
+                    try:
+                        summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker,name=name, min_length=min_length, max_length=max_length)
+                    except BadRequestError:
                         continue
-                    summary = self.summary_prompter.requestSummary(pair["text"], focus=ticker,name=name, min_length=min_length, max_length=max_length)
                     # Flush to avoid token overflow
                     self.summary_prompter.communicator.flush()
 
@@ -226,22 +205,27 @@ class FinBot:
 def temp(ticker):
     today = datetime.now(timezone.utc)
     yesterday = today - timedelta(days=21900)
-    finbot.getNewsSummariesForTicker(ticker, yesterday, today,limit=100)
+    finbot.getNewsSummariesForTicker(ticker, yesterday, today,limit=10)
 
 finbot = FinBot()
 tickers = finbot.polygon_com.get100Tickers()
 
-temp("NFL")
-temp("BAC")
-temp("INTC")
-temp("GE")
-temp("INTC")
-temp("PG")
+temp("NFLX")
 temp("TSLA")
-temp("NVDA")
-temp("AMZN")
-temp("GOOG")
-temp("COIN")
-
-for ticker in tickers:
-    temp(ticker)
+temp("MARA")
+temp("PLTR")
+temp("MSTR")
+temp("MU")
+temp("RDDT")
+temp("BA")
+temp("CLSK")
+temp("BABA")
+temp("NKE")
+temp("SOUN")
+temp("DIS")
+temp("SNOW")
+temp("AAPL")
+temp("KO")
+temp("CAKE")
+temp("PG")
+temp("PYPL")
